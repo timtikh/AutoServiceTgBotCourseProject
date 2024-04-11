@@ -9,15 +9,20 @@ c = conn.cursor()
 settings = Settings()
 
 class User:
+    from datetime import datetime
+
+class User:
     def __init__(self, user_id):
         self.__user_id = user_id
 
         if not does_user_exist(self.get_id()):
-            c.execute(f"INSERT INTO users VALUES(?, ?, ?, ?, ?, ?, ?)", [self.get_id(), 1 if str(self.get_id()) == settings.get_main_admin_id() else 0, 0, 0, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "None", 1])
+            c.execute("INSERT INTO users (user_id, is_admin, is_manager, notification, date_created, cart, cart_delivery) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                      (self.get_id(), 1 if str(self.get_id()) == settings.get_main_admin_id() else 0, 0, 0, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "None", 1))
             conn.commit()
 
     def get_id(self):
         return self.__user_id
+
 
     def __clist(self):
         c.execute(f"SELECT * FROM users WHERE user_id=?", [self.get_id()])
@@ -54,6 +59,35 @@ class User:
         c.execute(f"SELECT * FROM orders WHERE user_id=?", [self.get_id()])
         return list(map(Order, [order[0] for order in list(c)]))[::-1]
     
+    def get_name(self):
+        c.execute("SELECT name FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
+
+    def get_phone(self):
+        c.execute("SELECT phone FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
+
+    def get_vin(self):
+        c.execute("SELECT vin FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
+
+    def get_brand(self):
+        c.execute("SELECT brand FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
+
+    def get_model(self):
+        c.execute("SELECT model FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
+
+    def get_year(self):
+        c.execute("SELECT year FROM users WHERE user_id = ?", [self.get_id()])
+        result = c.fetchone()
+        return result[0] if result else "Неизвестно"
     def get_cart_comma(self):
         return self.__clist()[5]
     
@@ -90,7 +124,11 @@ class User:
     def set_cart_delivery(self, value):
         c.execute(f"UPDATE users SET cart_delivery=? WHERE user_id=?", [value, self.get_id()])
         conn.commit()
-        
+
+    def save_user_data(self, name, phone, vin, brand, model, year):
+        c.execute("INSERT INTO users (user_id, name, phone, vin, brand, model, year) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (self.get_id(), name, phone, vin, brand, model, year))
+        conn.commit()
 
 def does_user_exist(user_id):
     c.execute(f"SELECT * FROM users WHERE user_id=?", [user_id])

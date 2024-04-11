@@ -15,16 +15,16 @@ mainadminid = {main_admin_id}
 debug = 0
 
 [shop_settings]
-name = Название магазина
-greeting = Добро пожаловать!
-refundpolicy = Текст для вкладки "Политика возврата"
-contacts = Текст для вкладки "Контакты"
+name = Автосервис - Тестовый автосервис 1
+greeting = Добро пожаловать! Это бот для записи в Тестовый автосервис, его приветстdенное сообщение. Введите любой символ для начала регистрации.
+refundpolicy = Публичная оферта
+contacts = Текст для вкладки "Контакты". Номер телефона и адрес
 enableimage = 1
 enablesticker = 0
 enablephonenumber = 0
 enabledelivery = 0
 delivery_price = 0.0
-enablecaptcha = 1
+enablecaptcha = 0
 
 [stats_settings]
 barcolor = 3299ff
@@ -79,7 +79,13 @@ CREATE TABLE "users" (
 	"notification" INTEGER,
 	"date_created" TEXT,
     "cart" TEXT, 
-    "cart_delivery" INTEGER
+    "cart_delivery" INTEGER,
+    "name" TEXT,
+    "phone" TEXT,
+    "vin" TEXT,
+    "brand" TEXT,
+    "model" TEXT,
+    "year" INTEGER
 )
 """
 CREATE_COMMANDS_TEXT = """
@@ -90,6 +96,44 @@ CREATE TABLE "commands" (
     PRIMARY KEY("id")
 )
 """
+def create_categories(conn):
+    categories = [
+        ("Технические жидкости, замена",),
+        ("Замена тормозных колодок",),
+        ("Шиномонтаж",),
+        ("Диагностика двигателя",),
+        ("Замена фильтров",)
+    ]
+    c = conn.cursor()
+    c.executemany("INSERT INTO cats (name) VALUES (?)", categories)
+    conn.commit()
+
+def get_cat_id(conn, cat_name):
+    c = conn.cursor()
+    c.execute("SELECT id FROM cats WHERE name=?", (cat_name,))
+    row = c.fetchone()
+    if row:
+        return row[0]
+    else:
+        return None
+    
+def create_services(conn):
+    services = [
+        ("Замена масла и фильтра", 50.0, get_cat_id(conn, "Технические жидкости, замена"), "Полная замена масла и масляного фильтра"),
+        ("Регулировка тормозных колодок", 70.0, get_cat_id(conn, "Замена тормозных колодок"), "Регулировка и замена тормозных колодок"),
+        ("Шиномонтаж", 30.0, get_cat_id(conn, "Шиномонтаж"), "Балансировка и замена шин"),
+        ("Проверка состояния двигателя", 40.0, get_cat_id(conn, "Диагностика двигателя"), "Диагностика и анализ работы двигателя"),
+        ("Замена воздушного фильтра", 20.0, get_cat_id(conn, "Замена фильтров"), "Замена воздушного фильтра в двигателе"),
+        ("Замена масла и фильтра (премиум)", 80.0, get_cat_id(conn, "Технические жидкости, замена"), "Полная замена масла и масляного фильтра (премиум)"),
+        ("Замена тормозных дисков", 100.0, get_cat_id(conn, "Замена тормозных колодок"), "Замена и регулировка тормозных дисков"),
+        ("Хранение шин", 10.0, get_cat_id(conn, "Шиномонтаж"), "Хранение и обслуживание шин в течение сезона"),
+        ("Диагностика электронных систем", 60.0, get_cat_id(conn, "Диагностика двигателя"), "Проверка и анализ работы электронных систем автомобиля"),
+        ("Замена топливного фильтра", 25.0, get_cat_id(conn, "Замена фильтров"), "Замена топливного фильтра в топливной системе")
+    ]
+    c = conn.cursor()
+    c.executemany("INSERT INTO items(name, price, cat_id, desc, active, amount, image_id, hide_image) VALUES(?, ?, ?, ?, 1, 10, 0, 0)", services)
+    conn.commit()
+
 
 def create_db():
     conn = sqlite3.connect("data.db")
@@ -100,6 +144,8 @@ def create_db():
     c.execute(CREATE_USERS_TEXT)
     c.execute(CREATE_COMMANDS_TEXT)
     conn.commit()
+    create_categories(conn)
+    create_services(conn)
     conn.close()    
 
 def do_files_exist():

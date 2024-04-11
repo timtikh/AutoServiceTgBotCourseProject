@@ -1,6 +1,16 @@
 from urllib import response
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
+
+class RegistrationProcess(StatesGroup):
+    init = State()
+    name = State()
+    phone = State()
+    vin = State()
+    brand = State()
+    model = State()
+    year = State()
+
 # Item management
 class addCat(StatesGroup):
     state_message = State()

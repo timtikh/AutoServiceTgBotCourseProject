@@ -94,13 +94,11 @@ async def welcome(message: types.Message):
     if settings.is_debug():
         print(f"DEBUG: COMMAND [{message.chat.id}] {message.text}")
     user = usr.User(message.chat.id)
-
     markupMain = markups.get_markup_main()
     if user.is_manager() or user.is_admin():
         markupMain.row(markups.btnOrders)
     if user.is_admin():
         markupMain.row(markups.btnAdminPanel)
-
     try:
         if settings.is_sticker_enabled():
             if exists("sticker.tgs"):
@@ -116,7 +114,68 @@ async def welcome(message: types.Message):
         text=settings.get_shop_greeting(),
         reply_markup=markupMain,
     )
+    await state_handler.RegistrationProcess.init.set()
 
+
+### Registration
+@dp.message_handler(state=state_handler.RegistrationProcess.init)
+async def start_registration(message: types.Message):
+    await message.answer("Давайте начнем регистрацию. Пожалуйста, введите ваше имя:")
+    await state_handler.RegistrationProcess.name.set()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.name)
+async def process_name(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['name'] = message.text
+    await message.answer("Отлично! Теперь введите ваш номер телефона:")
+    await state_handler.RegistrationProcess.next()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.phone)
+async def process_phone(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['phone'] = message.text
+    await message.answer("Хорошо! Теперь введите VIN вашего автомобиля:")
+    await state_handler.RegistrationProcess.next()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.vin)
+async def process_vin(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['vin'] = message.text
+    await message.answer("Отлично! Теперь введите марку вашего автомобиля:")
+    await state_handler.RegistrationProcess.next()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.brand)
+async def process_brand(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['brand'] = message.text
+    await message.answer("Хорошо! Теперь введите модель вашего автомобиля:")
+    await state_handler.RegistrationProcess.next()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.model)
+async def process_model(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['model'] = message.text
+    await message.answer("Отлично! Теперь введите год выпуска вашего автомобиля:")
+    await state_handler.RegistrationProcess.next()
+
+@dp.message_handler(state=state_handler.RegistrationProcess.year)
+async def process_year(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['year'] = message.text
+        # Сохраняем данные о пользователе в базу данных
+        user_id = usr.User(message.chat.id)
+        name = data['name']
+        phone = data['phone']
+        vin = data['vin']
+        brand = data['brand']
+        model = data['model']
+        year = data['year']
+        user_id.save_user_data(name, phone, vin, brand, model, year)
+    await state.finish()
+    await message.answer("Регистрация завершена! Спасибо за предоставленную информацию. Можете выбрать услугу в каталоге услуг и записаться к нам в Автосервис")
+
+
+###
 
 @dp.message_handler()
 async def handle_text(message):
